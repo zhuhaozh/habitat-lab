@@ -355,7 +355,9 @@ def walk_armature(this_bone, handler):
         walk_armature(child, handler)
 
 
-def export_urdf(filename, settings):
+# XXX: 1. renamed as it is same as the variable name (Line 496)
+# XXX: 2. this function never used and dont know where the 'settings' can be found  
+def export_urdf_file(filename, settings): 
     global LINK_NAME_FORMAT, JOINT_NAME_FORMAT, ob, root_bone, links, joints, multiplier
     counter = 0
     links = []
@@ -476,7 +478,7 @@ def main():
         help="Folder where to output body files",
     )
     parser.add_argument(
-        "--body_file",
+        "--body-file",
         type=str,
         help="(Optional) File with body parameters, including gender and betas. If not provided, will generate a single shape with random parameters.",
     )
@@ -487,8 +489,8 @@ def main():
     if args.body_file is None:
         body_info: list[dict] = [{}]
     else:
-        with open(args.body_file):
-            body_info = json.load(args.body_file)
+        with open(args.body_file) as f:
+            body_info = [json.load(f)]
 
     fbx_names = []
     export_glb = True
@@ -504,6 +506,7 @@ def main():
         # Set gender
         if "gender" in curr_body_info:
             assert curr_body_info["gender"] in genders
+            gender = curr_body_info["gender"]
         else:
             gender = random.choice(genders)
 
@@ -512,9 +515,11 @@ def main():
 
         # Set texture
         if "texture" in curr_body_info:
-            texture = curr_body_info["texture"]
+            texture = curr_body_info["texture"] # XXX: this is never unused 
         else:
             if gender != "neutral":
+                # XXX: this texture file cannot be found
+                # XXX: and it cannot be set as smplx texture, "male0_albedo.jpg" not found in ('NONE', 'smplx_texture_f_alb.png', 'smplx_texture_m_alb.png', 'smplx_texture_rainbow.png', 'UV_GRID', 'COLOR_GRID
                 texture = "{}{}_albedo.jpg".format(
                     gender, (index_body % num_textures_gender) + 1
                 )
@@ -526,7 +531,7 @@ def main():
                     gender == "male"
                     and (index_body % num_textures_gender) == 4
                 ):
-                    texture = "male5_albedo.jpg"
+                    texture = "male5_albedo.jpg" # XXX: may be "smplx_texture_m_alb.png"?
                 bpy.context.window_manager.smplx_tool.smplx_texture = texture
                 bpy.ops.object.smplx_set_texture()
 
@@ -548,6 +553,8 @@ def main():
         ind = 0
 
         for key_block in obj.data.shape_keys.key_blocks:
+            if ind == 10:
+                break
             if key_block.name.startswith("Shape"):
                 key_block.value = betas[ind]
                 ind += 1
@@ -595,8 +602,8 @@ def main():
             bpy.ops.import_scene.fbx(
                 filepath=fbx_name, automatic_bone_orientation=True
             )
-            bpy.ops.export_armature.urdf(filepath=urdf_name)
-
+            bpy.ops.export_armature.urdf(filepath=urdf_name) # XXX: raise an error "AttributeError: Calling operator "bpy.ops.export_armature.urdf" error, could not be found"
+            # export_urdf_file(filename=urdf_name, settings={?}) # XXX: maybe use this function? but the I don't know where the settings can be found.  
 
 if __name__ == "__main__":
     main()
